@@ -8,8 +8,16 @@ use Inertia\Inertia;
 
 class WebMediaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->wantsJson()) {
+            $page = $request->query('page');
+
+            $web_media = WebMedia::where('page', $page)->inRandomOrder()->get();
+
+            return response()->json($web_media, 200);
+        }
+
         $web_media = WebMedia::all()->groupBy('section');
 
         return Inertia::render('WebMedia', [

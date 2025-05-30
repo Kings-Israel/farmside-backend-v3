@@ -8,8 +8,16 @@ use Inertia\Inertia;
 
 class WebContentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->wantsJson()) {
+            $page = $request->query('page');
+
+            $web_contents = WebContent::where('page', $page)->get();
+
+            return response()->json($web_contents, 200);
+        }
+
         $web_contents = WebContent::all();
 
         return Inertia::render('WebContent', [
