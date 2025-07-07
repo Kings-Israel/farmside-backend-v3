@@ -11,3 +11,6 @@ Route::get('/user', function (Request $request) {
 
 Route::get('/web-content', [WebContentController::class, 'index'])->name('web-content.index');
 Route::get('/web-media', [WebMediaController::class, 'index'])->name('web-media.index');
+
+// Store booking
+Route::post('/bookings', [\App\Http\Controllers\BookingController::class, 'submitBooking'])->name('bookings.submit');
