@@ -6,6 +6,7 @@ use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 
 class BookingController extends Controller
 {
@@ -21,7 +22,7 @@ class BookingController extends Controller
         $limit = min((int) $request->get('limit', 50), 200);
         $bookings = $query->paginate($limit, ['*'], 'page', $request->get('page', 1));
 
-        return response()->json($bookings);
+        return Inertia::render('Bookings', ['bookings' => $bookings]);
     }
 
     /**
