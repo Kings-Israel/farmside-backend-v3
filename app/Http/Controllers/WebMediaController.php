@@ -12,8 +12,12 @@ class WebMediaController extends Controller
     {
         if ($request->wantsJson()) {
             $page = $request->query('page');
+            $type = $request->query('type');
 
-            $web_media = WebMedia::where('page', $page)->inRandomOrder()->get();
+            $web_media = WebMedia::where('page', $page)
+            ->when($type, function ($query, $type) {
+                return $query->where('type', $type);
+            })->inRandomOrder()->get();
 
             return response()->json($web_media, 200);
         }

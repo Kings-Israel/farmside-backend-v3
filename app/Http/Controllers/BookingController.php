@@ -56,4 +56,11 @@ class BookingController extends Controller
 
         return response()->json($booking, 201);
     }
+
+    public function analyze(Request $request)
+    {
+        $response = \App\AiAgents\BookingAnalyzer::ask($request->input('description'));
+
+        return response()->json($response);
+    }
 }

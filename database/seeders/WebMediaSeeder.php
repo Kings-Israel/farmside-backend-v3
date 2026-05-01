@@ -94,28 +94,28 @@ class WebMediaSeeder extends Seeder
             'page' => 'Portfolio',
             'section' => 'Birthdays',
             'link' => 'https://images.unsplash.com/photo-1507126117511-e87526de90e2?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDE3fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=60',
-            'type' => 'video'
+            'type' => 'image'
         ]);
 
         WebMedia::create([
             'page' => 'Portfolio',
             'section' => 'Graduations',
             'link' => 'https://images.unsplash.com/photo-1614492052748-7c182718eaa0?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDI1fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=60',
-            'type' => 'video'
+            'type' => 'image'
         ]);
 
         WebMedia::create([
             'page' => 'Portfolio',
             'section' => 'Weddings',
             'link' => 'https://images.unsplash.com/photo-1601511086638-a6d6946ed7fd?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDI5fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=60',
-            'type' => 'video'
+            'type' => 'image'
         ]);
 
-        WebMedia::create([
-            'page' => 'Downloads',
-            'section' => 'Lease Agreement',
-            'link' => 'https://images.unsplash.com/photo-1601511086638-a6d6946ed7fd?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDI5fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=60',
-            'type' => 'document'
-        ]);
+        // WebMedia::create([
+        //     'page' => 'Downloads',
+        //     'section' => 'Lease Agreement',
+        //     'link' => 'https://images.unsplash.com/photo-1601511086638-a6d6946ed7fd?ixid=MXwxMjA3fDB8MHx0b3BpYy1mZWVkfDI5fHRvd0paRnNrcEdnfHxlbnwwfHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=60',
+        //     'type' => 'document'
+        // ]);
     }
 }
