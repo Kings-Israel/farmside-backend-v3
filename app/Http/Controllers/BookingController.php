@@ -17,7 +17,7 @@ class BookingController extends Controller
     {
         $per_page = $request->query('per_page');
 
-        $query = Booking::query();
+        $query = Booking::query()->latest();
 
         $limit = min((int) $request->get('limit', 50), 200);
         $bookings = $query->paginate($limit, ['*'], 'page', $request->get('page', 1));
@@ -55,6 +55,17 @@ class BookingController extends Controller
         $booking = Booking::create($data->toArray());
 
         return response()->json($booking, 201);
+    }
+
+    public function confirm(Booking $booking)
+    {
+        if (is_null($booking->confirmed_at)) {
+            $booking->forceFill([
+                'confirmed_at' => now(),
+            ])->save();
+        }
+
+        return back();
     }
 
     public function analyze(Request $request)

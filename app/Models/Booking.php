@@ -20,5 +20,6 @@ class Booking extends Model
      */
     protected $casts = [
         'event_details' => 'array',
+        'confirmed_at' => 'datetime',
     ];
 }

@@ -1,7 +1,17 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
+import { CheckCircle2, Eye } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -18,8 +28,12 @@ interface Booking {
     event_date: string;
     location: string;
     event_type: string;
-    event_details: Record<string, unknown> | null;
+    event_duration: string | null;
+    event_details: Record<string, unknown> | unknown[] | null;
+    description: string | null;
+    confirmed_at: string | null;
     created_at: string;
+    updated_at: string;
 }
 
 interface PaginatedBookings {
@@ -38,8 +52,65 @@ const goToPage = (page: number) => {
     router.get('/bookings', { page }, { preserveState: true, preserveScroll: true });
 };
 
+const confirmBooking = (booking: Booking) => {
+    router.patch(
+        `/bookings/${booking.id}/confirm`,
+        {},
+        {
+            preserveScroll: true,
+            only: ['bookings'],
+        },
+    );
+};
+
 const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const formatDateTime = (date: string) => {
+    return new Date(date).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    });
+};
+
+const formatLabel = (key: string) => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const formatValue = (value: unknown) => {
+    if (value === null || value === undefined || value === '') {
+        return 'Not provided';
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(', ') : 'Not provided';
+    }
+
+    if (typeof value === 'object') {
+        return JSON.stringify(value, null, 2);
+    }
+
+    if (typeof value === 'boolean') {
+        return value ? 'Yes' : 'No';
+    }
+
+    return String(value);
+};
+
+const eventDetailEntries = (booking: Booking) => {
+    if (!booking.event_details) {
+        return [];
+    }
+
+    if (Array.isArray(booking.event_details)) {
+        return booking.event_details.map((value, index) => [`Item ${index + 1}`, value] as const);
+    }
+
+    return Object.entries(booking.event_details);
 };
 </script>
 
@@ -70,7 +141,9 @@ const formatDate = (date: string) => {
                             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Event Date</th>
                             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Location</th>
                             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Event Type</th>
+                            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                             <th class="px-4 py-3 text-left font-medium text-muted-foreground">Submitted</th>
+                            <th class="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -90,7 +163,139 @@ const formatDate = (date: string) => {
                                     {{ booking.event_type }}
                                 </span>
                             </td>
+                            <td class="px-4 py-3">
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="booking.confirmed_at
+                                        ? 'bg-green-500/15 text-green-700 dark:text-green-400'
+                                        : 'bg-muted text-muted-foreground'"
+                                >
+                                    {{ booking.confirmed_at ? 'Confirmed' : 'Pending' }}
+                                </span>
+                            </td>
                             <td class="px-4 py-3 text-muted-foreground">{{ formatDate(booking.created_at) }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex justify-end gap-2">
+                                    <Button
+                                        v-if="!booking.confirmed_at"
+                                        variant="default"
+                                        size="sm"
+                                        class="gap-2 bg-green-600 text-white hover:bg-green-700"
+                                        @click="confirmBooking(booking)"
+                                    >
+                                        <CheckCircle2 class="size-4" />
+                                        Confirm
+                                    </Button>
+
+                                    <Button v-else variant="secondary" size="sm" class="gap-2" disabled>
+                                        <CheckCircle2 class="size-4" />
+                                        Confirmed
+                                    </Button>
+
+                                    <Dialog>
+                                        <DialogTrigger as-child>
+                                            <Button variant="outline" size="sm" class="gap-2">
+                                                <Eye class="size-4" />
+                                                View
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent class="max-h-[75vh] overflow-y-auto sm:max-w-4xl">
+                                            <DialogHeader>
+                                                <DialogTitle>{{ booking.event_name }}</DialogTitle>
+                                                <DialogDescription>Booking #{{ booking.id }}</DialogDescription>
+                                            </DialogHeader>
+
+                                        <div class="space-y-5">
+                                            <section>
+                                                <h3 class="mb-3 text-sm font-medium">Event</h3>
+                                                <dl class="grid gap-3 rounded-lg border border-sidebar-border/70 p-4 sm:grid-cols-2 dark:border-sidebar-border">
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Event Type</dt>
+                                                        <dd class="mt-1">{{ formatValue(booking.event_type) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Event Date</dt>
+                                                        <dd class="mt-1">{{ formatDate(booking.event_date) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Duration</dt>
+                                                        <dd class="mt-1">{{ formatValue(booking.event_duration) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Location</dt>
+                                                        <dd class="mt-1">{{ formatValue(booking.location) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Status</dt>
+                                                        <dd class="mt-1">{{ booking.confirmed_at ? 'Confirmed' : 'Pending' }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Confirmed At</dt>
+                                                        <dd class="mt-1">{{ booking.confirmed_at ? formatDateTime(booking.confirmed_at) : 'Not confirmed' }}</dd>
+                                                    </div>
+                                                </dl>
+                                            </section>
+
+                                            <section>
+                                                <h3 class="mb-3 text-sm font-medium">Contact</h3>
+                                                <dl class="grid gap-3 rounded-lg border border-sidebar-border/70 p-4 sm:grid-cols-2 dark:border-sidebar-border">
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Email</dt>
+                                                        <dd class="mt-1 break-words">{{ formatValue(booking.email) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Phone Number</dt>
+                                                        <dd class="mt-1">{{ formatValue(booking.phone_number) }}</dd>
+                                                    </div>
+                                                </dl>
+                                            </section>
+
+                                            <!-- <section>
+                                                <h3 class="mb-3 text-sm font-medium">Description</h3>
+                                                <p class="whitespace-pre-wrap rounded-lg border border-sidebar-border/70 p-4 text-sm dark:border-sidebar-border">
+                                                    {{ formatValue(booking.description) }}
+                                                </p>
+                                            </section> -->
+
+                                            <section>
+                                                <h3 class="mb-3 text-sm font-medium">Event Details</h3>
+                                                <dl
+                                                    v-if="eventDetailEntries(booking).length > 0"
+                                                    class="gap-3 rounded-lg border border-sidebar-border/70 p-4 sm:grid-cols-2 dark:border-sidebar-border"
+                                                >
+                                                    <div v-for="[key, value] in eventDetailEntries(booking)" :key="key" class="min-w-0">
+                                                        <dt class="text-xs font-medium text-muted-foreground mt-4">{{ formatLabel(key) }}</dt>
+                                                        <dd
+                                                            class="mt-1 whitespace-pre-wrap break-words"
+                                                            :class="{ 'font-mono text-xs': typeof value === 'object' && value !== null }"
+                                                        >
+                                                            {{ formatValue(value) }}
+                                                        </dd>
+                                                    </div>
+                                                </dl>
+                                                <p v-else class="rounded-lg border border-sidebar-border/70 p-4 text-sm text-muted-foreground dark:border-sidebar-border">
+                                                    No extra event details provided.
+                                                </p>
+                                            </section>
+
+                                            <section>
+                                                <h3 class="mb-3 text-sm font-medium">Record</h3>
+                                                <dl class="grid gap-3 rounded-lg border border-sidebar-border/70 p-4 sm:grid-cols-2 dark:border-sidebar-border">
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Submitted</dt>
+                                                        <dd class="mt-1">{{ formatDateTime(booking.created_at) }}</dd>
+                                                    </div>
+                                                    <div>
+                                                        <dt class="text-xs font-medium text-muted-foreground">Last Updated</dt>
+                                                        <dd class="mt-1">{{ formatDateTime(booking.updated_at) }}</dd>
+                                                    </div>
+                                                </dl>
+                                            </section>
+                                        </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
