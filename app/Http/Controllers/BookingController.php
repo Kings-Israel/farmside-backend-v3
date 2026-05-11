@@ -15,18 +15,23 @@ class BookingController extends Controller
      **/
     public function index(Request $request)
     {
-        $per_page = $request->query('per_page');
-
-        $query = Booking::query();
-
         $limit = min((int) $request->get('limit', 50), 200);
-        $bookings = $query->paginate($limit, ['*'], 'page', $request->get('page', 1));
+        $bookings = Booking::query()
+            ->orderBy('event_date', 'desc')
+            ->paginate($limit, ['*'], 'page', $request->get('page', 1));
 
-        return Inertia::render('Bookings', ['bookings' => $bookings]);
+        $calendarBookings = Booking::query()
+            ->select('id', 'event_name', 'event_date', 'status')
+            ->get();
+
+        return Inertia::render('Bookings', [
+            'bookings' => $bookings,
+            'calendarBookings' => $calendarBookings,
+        ]);
     }
 
     /**
-     * Store a booking
+     * Store a booking via the public API (status defaults to pending)
      **/
     public function store(Request $request)
     {
@@ -55,5 +60,33 @@ class BookingController extends Controller
         $booking = Booking::create($data->toArray());
 
         return response()->json($booking, 201);
+    }
+
+    /**
+     * Store a booking created by admin (auto-confirmed)
+     **/
+    public function adminStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'event_name' => ['required'],
+            'email' => ['required', 'email'],
+            'phone_number' => ['required'],
+            'event_date' => ['required', 'date'],
+            'location' => ['required'],
+            'event_type' => ['required'],
+            'description' => ['nullable'],
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $data = $request->only(['event_name', 'email', 'phone_number', 'event_date', 'location', 'event_type', 'description']);
+        $data['event_date'] = Carbon::parse($data['event_date']);
+        $data['status'] = 'confirmed';
+
+        Booking::create($data);
+
+        return redirect()->route('bookings.index');
     }
 }

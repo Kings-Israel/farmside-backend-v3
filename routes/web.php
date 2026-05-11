@@ -20,6 +20,7 @@ Route::get('/web-media', [WebMediaController::class, 'index'])->name('web-media.
 Route::post('/web-media/add', [WebMediaController::class, 'store'])->name('web-media.store');
 Route::post('/web-media/update', [WebMediaController::class, 'update'])->name('web-media.update');
 Route::get('/bookings', [BookingController::class, 'index'])->middleware(['auth'])->name('bookings.index');
+Route::post('/bookings', [BookingController::class, 'adminStore'])->middleware(['auth'])->name('bookings.adminStore');
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

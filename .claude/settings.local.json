@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wait b62ar761z *)",
+      "Bash(php artisan *)"
+    ]
+  }
+}
