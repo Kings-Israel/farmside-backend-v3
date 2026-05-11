@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'openai' => [
+        'ORG_ID' => env('OPEN_AI_ORG_ID'),
+        'PROJECT_ID' => env('OPEN_AI_PROJECT_ID'),
+        'API_KEY' => env('OPEN_AI_API_KEY'),
+    ],
+
 ];

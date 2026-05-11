@@ -15,6 +15,10 @@ class BookingController extends Controller
      **/
     public function index(Request $request)
     {
+        $per_page = $request->query('per_page');
+
+        $query = Booking::query()->latest();
+
         $limit = min((int) $request->get('limit', 50), 200);
         $bookings = Booking::query()
             ->orderBy('event_date', 'desc')
@@ -84,9 +88,29 @@ class BookingController extends Controller
         $data = $request->only(['event_name', 'email', 'phone_number', 'event_date', 'location', 'event_type', 'description']);
         $data['event_date'] = Carbon::parse($data['event_date']);
         $data['status'] = 'confirmed';
+        $data['confirmed_at'] = now();
 
         Booking::create($data);
 
         return redirect()->route('bookings.index');
+    }
+
+    public function confirm(Booking $booking)
+    {
+        if (is_null($booking->confirmed_at)) {
+            $booking->forceFill([
+                'confirmed_at' => now(),
+                'status' => 'confirmed'
+            ])->save();
+        }
+
+        return back();
+    }
+
+    public function analyze(Request $request)
+    {
+        $response = \App\AiAgents\BookingAnalyzer::ask($request->input('description'));
+
+        return response()->json($response);
     }
 }

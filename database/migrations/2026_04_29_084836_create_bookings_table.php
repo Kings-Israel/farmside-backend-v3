@@ -19,6 +19,7 @@ return new class extends Migration
             $table->date('event_date');
             $table->string('location');
             $table->string('event_type');
+            $table->string('event_duration')->nullable();
             $table->json('event_details')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
