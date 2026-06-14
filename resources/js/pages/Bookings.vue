@@ -2,8 +2,10 @@
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -13,15 +15,10 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CheckCircle2, Eye, Flag, RotateCcw, Search, XCircle } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { CheckCircle2, ChevronLeft, ChevronRight, Eye } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Bookings',
-        href: '/bookings',
-    },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Bookings', href: '/bookings' }];
 
 interface Booking {
     id: number;
@@ -44,6 +41,13 @@ interface Booking {
 }
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'forfeited';
+
+interface CalendarBooking {
+    id: number;
+    event_name: string;
+    event_date: string;
+    status: string;
+}
 
 interface PaginatedBookings {
     data: Booking[];
@@ -156,6 +160,109 @@ const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
+const statusBadgeClass = (status: string) =>
+    status === 'confirmed' ? 'bg-green-400/20 text-green-700 dark:text-green-400' : 'bg-yellow-400/20 text-yellow-700 dark:text-yellow-400';
+
+// Add booking dialog
+const showAddDialog = ref(false);
+
+const form = useForm({
+    event_name: '',
+    email: '',
+    phone_number: '',
+    event_date: '',
+    location: '',
+    event_type: '',
+    description: '',
+});
+
+const submitBooking = () => {
+    form.post('/bookings', {
+        preserveScroll: true,
+        onSuccess: () => {
+            showAddDialog.value = false;
+            form.reset();
+        },
+    });
+};
+
+// Calendar state
+const calendarDate = ref(new Date());
+
+const calendarMonthLabel = computed(() => calendarDate.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+
+const prevMonth = () => {
+    const d = new Date(calendarDate.value);
+    d.setMonth(d.getMonth() - 1);
+    calendarDate.value = d;
+};
+
+const nextMonth = () => {
+    const d = new Date(calendarDate.value);
+    d.setMonth(d.getMonth() + 1);
+    calendarDate.value = d;
+};
+
+interface CalendarDay {
+    dayNumber: number;
+    currentMonth: boolean;
+    isToday: boolean;
+    bookings: CalendarBooking[];
+}
+
+const calendarDays = computed((): CalendarDay[] => {
+    const year = calendarDate.value.getFullYear();
+    const month = calendarDate.value.getMonth();
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDow = firstDay.getDay();
+
+    const toDateStr = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    const days: CalendarDay[] = [];
+
+    // Previous month padding
+    for (let i = startDow - 1; i >= 0; i--) {
+        const d = new Date(year, month, -i);
+        const dateStr = toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+        days.push({
+            dayNumber: d.getDate(),
+            currentMonth: false,
+            isToday: dateStr === todayStr,
+            bookings: props.calendarBookings.filter((b: CalendarBooking) => b.event_date === dateStr),
+        });
+    }
+
+    // Current month days
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+        const dateStr = toDateStr(year, month, d);
+        days.push({
+            dayNumber: d,
+            currentMonth: true,
+            isToday: dateStr === todayStr,
+            bookings: props.calendarBookings.filter((b: CalendarBooking) => b.event_date === dateStr),
+        });
+    }
+
+    // Next month padding
+    let nextDay = 1;
+    while (days.length < 42) {
+        const d = new Date(year, month + 1, nextDay);
+        const dateStr = toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
+        days.push({
+            dayNumber: nextDay++,
+            currentMonth: false,
+            isToday: dateStr === todayStr,
+            bookings: props.calendarBookings.filter((b: CalendarBooking) => b.event_date === dateStr),
+        });
+    }
+
+    return days;
+});
 const formatDateTime = (date: string) => {
     return new Date(date).toLocaleString('en-US', {
         year: 'numeric',
@@ -208,11 +315,18 @@ const eventDetailEntries = (booking: Booking) => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
+            <!-- Header -->
             <div class="flex items-center justify-between">
                 <h2 class="text-xl font-semibold">Bookings</h2>
-                <span class="text-sm text-muted-foreground" v-if="bookings.total != null">
-                    {{ bookings.total }} total
-                </span>
+                <div class="flex gap-2 items-center">
+                    <span class="text-sm text-muted-foreground" v-if="bookings.total != null">
+                        {{ bookings.total }} total
+                    </span>
+                    <!-- Add Booking Button -->
+                    <Button class="gap-2 bg-yellow-400 text-black hover:bg-yellow-500" @click="showAddDialog = true">
+                        Add Booking
+                    </Button>
+                </div>
             </div>
 
             <div class="grid gap-3 rounded-xl border border-sidebar-border/70 p-4 dark:border-sidebar-border md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
@@ -511,5 +625,95 @@ const eventDetailEntries = (booking: Booking) => {
                 </div>
             </div>
         </div>
+
+        <!-- Add Booking Dialog -->
+        <Dialog :open="showAddDialog" @update:open="showAddDialog = $event">
+            <DialogContent class="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Add Booking</DialogTitle>
+                </DialogHeader>
+
+                <form @submit.prevent="submitBooking" class="space-y-4 pt-1">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 space-y-1.5">
+                            <Label for="event_name">Event Name</Label>
+                            <Input
+                                id="event_name"
+                                v-model="form.event_name"
+                                placeholder="Enter event name"
+                                :aria-invalid="!!form.errors.event_name"
+                            />
+                            <p v-if="form.errors.event_name" class="text-destructive text-xs">{{ form.errors.event_name }}</p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label for="email">Email</Label>
+                            <Input
+                                id="email"
+                                type="email"
+                                v-model="form.email"
+                                placeholder="client@example.com"
+                                :aria-invalid="!!form.errors.email"
+                            />
+                            <p v-if="form.errors.email" class="text-destructive text-xs">{{ form.errors.email }}</p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label for="phone_number">Phone Number</Label>
+                            <Input
+                                id="phone_number"
+                                v-model="form.phone_number"
+                                placeholder="+1 234 567 8900"
+                                :aria-invalid="!!form.errors.phone_number"
+                            />
+                            <p v-if="form.errors.phone_number" class="text-destructive text-xs">{{ form.errors.phone_number }}</p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label for="event_date">Event Date</Label>
+                            <Input id="event_date" type="date" v-model="form.event_date" :aria-invalid="!!form.errors.event_date" />
+                            <p v-if="form.errors.event_date" class="text-destructive text-xs">{{ form.errors.event_date }}</p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <Label for="location">Location</Label>
+                            <Input id="location" v-model="form.location" placeholder="Event location" :aria-invalid="!!form.errors.location" />
+                            <p v-if="form.errors.location" class="text-destructive text-xs">{{ form.errors.location }}</p>
+                        </div>
+
+                        <div class="col-span-2 space-y-1.5">
+                            <Label for="event_type">Event Type</Label>
+                            <Input
+                                id="event_type"
+                                v-model="form.event_type"
+                                placeholder="e.g. Wedding, Corporate, Birthday"
+                                :aria-invalid="!!form.errors.event_type"
+                            />
+                            <p v-if="form.errors.event_type" class="text-destructive text-xs">{{ form.errors.event_type }}</p>
+                        </div>
+
+                        <div class="col-span-2 space-y-1.5">
+                            <Label for="description">Description <span class="text-muted-foreground font-normal">(optional)</span></Label>
+                            <textarea
+                                id="description"
+                                v-model="form.description"
+                                placeholder="Additional notes about the booking"
+                                rows="3"
+                                class="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 flex w-full resize-none rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <DialogClose as-child>
+                            <Button type="button" variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit" class="bg-yellow-400 text-black hover:bg-yellow-500" :disabled="form.processing">
+                            {{ form.processing ? 'Saving...' : 'Add Booking' }}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>

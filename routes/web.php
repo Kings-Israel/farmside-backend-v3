@@ -28,6 +28,7 @@ Route::get('/web-media', [WebMediaController::class, 'index'])->name('web-media.
 Route::post('/web-media/add', [WebMediaController::class, 'store'])->name('web-media.store');
 Route::post('/web-media/update', [WebMediaController::class, 'update'])->name('web-media.update');
 Route::get('/bookings', [BookingController::class, 'index'])->middleware(['auth'])->name('bookings.index');
+Route::post('/bookings', [BookingController::class, 'adminStore'])->middleware(['auth'])->name('bookings.adminStore');
 Route::patch('/bookings/{booking}/confirm', [BookingController::class, 'confirm'])->middleware(['auth'])->name('bookings.confirm');
 Route::patch('/bookings/{booking}/complete', [BookingController::class, 'complete'])->middleware(['auth'])->name('bookings.complete');
 Route::patch('/bookings/{booking}/forfeit', [BookingController::class, 'forfeit'])->middleware(['auth'])->name('bookings.forfeit');
