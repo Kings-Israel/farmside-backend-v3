@@ -6,6 +6,7 @@ use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class BookingController extends Controller
@@ -19,10 +20,43 @@ class BookingController extends Controller
 
         $query = Booking::query()->latest();
 
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(['pending', 'confirmed', 'completed', 'forfeited'])],
+            'event_date_from' => ['nullable', 'date'],
+            'event_date_to' => ['nullable', 'date'],
+        ]);
+
+        $status = $filters['status'] ?? null;
+        if ($status) {
+            match ($status) {
+                'pending' => $query->whereNull('confirmed_at'),
+                'confirmed' => $query->whereNotNull('confirmed_at')
+                    ->whereNull('completed_at')
+                    ->whereNull('forfeited_at'),
+                'completed' => $query->whereNotNull('completed_at'),
+                'forfeited' => $query->whereNotNull('forfeited_at'),
+            };
+        }
+
+        if (!empty($filters['event_date_from'])) {
+            $query->whereDate('event_date', '>=', Carbon::parse($filters['event_date_from'])->toDateString());
+        }
+
+        if (!empty($filters['event_date_to'])) {
+            $query->whereDate('event_date', '<=', Carbon::parse($filters['event_date_to'])->toDateString());
+        }
+
         $limit = min((int) $request->get('limit', 50), 200);
         $bookings = $query->paginate($limit, ['*'], 'page', $request->get('page', 1));
 
-        return Inertia::render('Bookings', ['bookings' => $bookings]);
+        return Inertia::render('Bookings', [
+            'bookings' => $bookings,
+            'filters' => [
+                'status' => $status,
+                'event_date_from' => $filters['event_date_from'] ?? null,
+                'event_date_to' => $filters['event_date_to'] ?? null,
+            ],
+        ]);
     }
 
     /**
@@ -64,6 +98,33 @@ class BookingController extends Controller
                 'confirmed_at' => now(),
             ])->save();
         }
+
+        return back();
+    }
+
+    public function complete(Booking $booking)
+    {
+        abort_if(is_null($booking->confirmed_at) || $booking->completed_at || $booking->forfeited_at, 422);
+
+        $booking->forceFill([
+            'completed_at' => now(),
+        ])->save();
+
+        return back();
+    }
+
+    public function forfeit(Request $request, Booking $booking)
+    {
+        abort_if(is_null($booking->confirmed_at) || $booking->completed_at || $booking->forfeited_at, 422);
+
+        $validated = $request->validate([
+            'forfeiture_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $booking->forceFill([
+            'forfeited_at' => now(),
+            'forfeiture_reason' => $validated['forfeiture_reason'],
+        ])->save();
 
         return back();
     }

@@ -21,5 +21,28 @@ class Booking extends Model
     protected $casts = [
         'event_details' => 'array',
         'confirmed_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'forfeited_at' => 'datetime',
     ];
+
+    protected $appends = [
+        'status',
+    ];
+
+    public function getStatusAttribute(): string
+    {
+        if ($this->forfeited_at) {
+            return 'forfeited';
+        }
+
+        if ($this->completed_at) {
+            return 'completed';
+        }
+
+        if ($this->confirmed_at) {
+            return 'confirmed';
+        }
+
+        return 'pending';
+    }
 }

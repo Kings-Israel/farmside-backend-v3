@@ -16,3 +16,5 @@ Route::get('/web-media', [WebMediaController::class, 'index'])->name('web-media.
 Route::post('/bookings', [BookingController::class, 'store']);
 
 Route::post('/bookings/analyze', [BookingController::class, 'analyze']);
+
+Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'index']);
